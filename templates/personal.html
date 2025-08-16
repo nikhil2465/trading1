@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PERSONAL File</title>
+    <!-- Use Google Fonts for a modern look -->
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700|Roboto:400,700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(120deg, #f6d365 0%, #fda085 100%);
+            font-family: 'Montserrat', 'Roboto', Arial, sans-serif;
+            color: #222;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 48px auto;
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 12px 40px rgba(60, 60, 120, 0.18);
+            padding: 40px 48px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2.6em;
+            font-weight: 700;
+            margin-bottom: 28px;
+            color: #f76b1c;
+            letter-spacing: 2px;
+            font-family: 'Montserrat', 'Roboto', Arial, sans-serif;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 22px;
+            font-size: 1.08em;
+        }
+        th, td {
+            border: 1px solid #fda085;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background: #f6d365;
+            color: #f76b1c;
+            font-weight: 700;
+        }
+        td {
+            background: #fff8f0;
+        }
+        a, button {
+            background: linear-gradient(90deg, #f76b1c 0%, #fad961 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 22px;
+            font-size: 1.08em;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            margin-right: 20px;
+            box-shadow: 0 2px 8px rgba(247, 107, 28, 0.12);
+            transition: background 0.2s, box-shadow 0.2s;
+            font-family: 'Montserrat', 'Roboto', Arial, sans-serif;
+        }
+        a:hover, button:hover {
+            background: linear-gradient(90deg, #fad961 0%, #f76b1c 100%);
+            box-shadow: 0 4px 16px rgba(247, 107, 28, 0.18);
+        }
+        .links {
+            margin-top: 24px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PERSONAL File Contents</h1>
+        {{ table|safe }}
+        <div class="links">
+            <a href="/run_personal_macro">Run Macro on PERSONAL File</a>
+            <a href="/">Back to Home</a>
+        </div>
+    </div>
+</body>
+</html>

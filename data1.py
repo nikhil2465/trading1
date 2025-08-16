@@ -237,6 +237,72 @@ def fetch_chartink_scan(scan_clause):
         print(f"Error fetching scan: {e}")
         return None
 
+def fetch_nse_option_chain(symbol):
+    """
+    Fetch option chain data for the given symbol from NSE and save to CSV.
+    """
+    url = f"https://www.nseindia.com/api/option-chain-equities?symbol={symbol.upper()}"
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": f"https://www.nseindia.com/option-chain"
+    }
+    session = requests.Session()
+    # Get cookies by visiting NSE homepage first
+    session.get("https://www.nseindia.com", headers=headers)
+    response = session.get(url, headers=headers)
+    if response.status_code == 200:
+        try:
+            data = response.json()
+            records = []
+            for item in data.get("records", {}).get("data", []):
+                strikePrice = item.get("strikePrice")
+                ce = item.get("CE", {})
+                pe = item.get("PE", {})
+                records.append({
+                    "strikePrice": strikePrice,
+                    "CE_openInterest": ce.get("openInterest"),
+                    "CE_changeInOI": ce.get("changeinOpenInterest"),
+                    "CE_lastPrice": ce.get("lastPrice"),
+                    "PE_openInterest": pe.get("openInterest"),
+                    "PE_changeInOI": pe.get("changeinOpenInterest"),
+                    "PE_lastPrice": pe.get("lastPrice"),
+                })
+            df = pd.DataFrame(records)
+            csv_filename = f"{symbol.upper()}_option_chain.csv"
+            df.to_csv(csv_filename, index=False)
+            print(f"Option chain data saved to {csv_filename}")
+            return csv_filename
+        except Exception as e:
+            print(f"Error parsing option chain data: {e}")
+            return None
+    else:
+        print(f"Failed to fetch option chain for {symbol}. Status: {response.status_code}")
+        return None
+
+def run_macro_on_option_chain(csv_filename):
+    """
+    Placeholder for running macro on the option chain CSV.
+    Replace this with your macro logic.
+    """
+    df = pd.read_csv(csv_filename)
+    # ...macro logic here...
+    print(f"Macro run on {csv_filename}. Results:")
+    print(df.head())  # Example output
+
+def fetch_option_chain_for_symbols(symbols):
+    """
+    Fetch and save option chain data for all symbols in the list.
+    """
+    for symbol in symbols:
+        symbol = symbol.strip()
+        if symbol:
+            csv_file = fetch_nse_option_chain(symbol)
+            if csv_file:
+                run_macro = input(f"Run macro on {csv_file}? (y/n): ").strip().lower()
+                if run_macro == "y":
+                    run_macro_on_option_chain(csv_file)
+
 # Your scan clauses
 scans = {
     'bullish': '( {futidx} ( weekly rsi(14) <= 30 and weekly close <= weekly lower bollinger(20,2) ) )',
@@ -244,6 +310,36 @@ scans = {
     'screenshot1_bearish_like': '( {futidx} ( weekly upper bollinger(20,2) > weekly close and weekly rsi(14) >= 70 ) )',
     'screenshot2_bullish_like': '( {futidx} ( weekly lower bollinger(20,2) < weekly close and weekly rsi(14) <= 30 ) )'
 }
+
+def run_chanakya_analysis(csv_filename):
+    """
+    Run Chanakya analysis (macro) on the given CSV file.
+    """
+    df = pd.read_csv(csv_filename)
+    # ...insert Chanakya macro logic here...
+    print(f"Chanakya analysis results for {csv_filename}:")
+    print(df.head())  # Example output
+
+def chartink_bullish_bearish_component():
+    """
+    Fetch and save Chartink screener data for bullish/bearish conditions.
+    """
+    chartink_scans = {
+        'bullish': '( {futidx} ( weekly rsi(14) <= 30 and weekly close <= weekly lower bollinger(20,2) ) )',
+        'bearish': '( {futidx} ( weekly rsi(14) >= 70 and weekly close >= weekly upper bollinger(20,2) ) )'
+    }
+    for scan_name, clause in chartink_scans.items():
+        print(f"Running Chartink {scan_name} scan...")
+        results = fetch_chartink_scan(clause)
+        if results is not None:
+            print(f"{scan_name.capitalize()} Results (sample):")
+            print(results[['nsecode', 'name', 'close', 'volume']].head())
+            results.to_csv(f'chartink_{scan_name}_stocks.csv', index=False)
+        else:
+            print(f"No live data for {scan_name}, using fallback.")
+            fallback_list = FALLBACK_DATA.get(scan_name, [])
+            if fallback_list:
+                pd.DataFrame(fallback_list).to_csv(f'chartink_{scan_name}_stocks.csv', index=False)
 
 if __name__ == "__main__":
     for scan_name, clause in scans.items():
@@ -259,3 +355,30 @@ if __name__ == "__main__":
             if fallback_list:
                 pd.DataFrame(fallback_list).to_csv(f'{scan_name}_stocks.csv', index=False)
         time.sleep(10)
+    
+    # Option chain feature (does not affect existing scans)
+    user_symbol = input("Enter NSE symbol for option chain (or press Enter to skip): ").strip()
+    if user_symbol:
+        csv_file = fetch_nse_option_chain(user_symbol)
+        if csv_file:
+            run_macro = input("Run macro on option chain CSV? (y/n): ").strip().lower()
+            if run_macro == "y":
+                run_macro_on_option_chain(csv_file)
+    
+    # Option chain feature for multiple symbols (does not affect existing scans)
+    user_symbols = input("Enter NSE symbols for option chain (comma-separated, or press Enter to skip): ").strip()
+    if user_symbols:
+        symbol_list = [s.strip() for s in user_symbols.split(",") if s.strip()]
+        fetch_option_chain_for_symbols(symbol_list)
+
+    # --- Separate Component 1: Chanakya Analysis ---
+    print("\n--- Chanakya Analysis Component ---")
+    chanakya_csv = input("Enter CSV filename for Chanakya analysis (or press Enter to skip): ").strip()
+    if chanakya_csv:
+        run_chanakya_analysis(chanakya_csv)
+
+    # --- Separate Component 2: Chartink Bullish/Bearish Screener ---
+    print("\n--- Chartink Bullish/Bearish Screener Component ---")
+    run_chartink = input("Run Chartink screener for bullish/bearish scans? (y/n): ").strip().lower()
+    if run_chartink == "y":
+        chartink_bullish_bearish_component()

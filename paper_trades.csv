@@ -1,2 +1,8 @@
-datetime,action,price,quantity,cash_balance
-2025-08-12 09:55:08,BUY,3035.4,32,2867.199999999997
+symbol,action,quantity,price
+TCS,buy,10,3550.75
+INFY,sell,5,1450.25
+RELIANCE,buy,8,2500.1
+HDFCBANK,sell,12,1600.55
+ICICIBANK,buy,20,950.2
+TCS,buy,10,3550.75
+TCS,buy,10,3550.75
