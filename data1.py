@@ -341,6 +341,25 @@ def chartink_bullish_bearish_component():
             if fallback_list:
                 pd.DataFrame(fallback_list).to_csv(f'chartink_{scan_name}_stocks.csv', index=False)
 
+def open_chartink_magic_filters_scan():
+    """
+    Generate Chartink scan creation URL with magic filters for futures segment:
+    - RSI < 30 with lower Bollinger Band and weekly close
+    - RSI > 70 with upper Bollinger Band and weekly close
+    """
+    # Clause for "Stock passes any of the below filters in futures segment"
+    scan_clause = (
+        '( {futidx} ( weekly rsi(14) <= 30 and weekly close <= weekly lower bollinger(20,2) ) ) '
+        'or ( {futidx} ( weekly rsi(14) >= 70 and weekly close >= weekly upper bollinger(20,2) ) )'
+    )
+    # Chartink scan creation URL with clause pre-filled (URL-encoded)
+    import urllib.parse
+    base_url = "https://chartink.com/screener/create-scan"
+    params = {"scan_clause": scan_clause}
+    url = f"{base_url}?{urllib.parse.urlencode(params)}"
+    print("Open this URL to create the scan with magic filters in futures segment:")
+    print(url)
+
 if __name__ == "__main__":
     for scan_name, clause in scans.items():
         print(f"Running {scan_name} scan...")
@@ -382,3 +401,8 @@ if __name__ == "__main__":
     run_chartink = input("Run Chartink screener for bullish/bearish scans? (y/n): ").strip().lower()
     if run_chartink == "y":
         chartink_bullish_bearish_component()
+
+    # --- Add this at the end for manual trigger ---
+    run_magic_filters = input("\nCreate Chartink scan with magic filters for futures segment? (y/n): ").strip().lower()
+    if run_magic_filters == "y":
+        open_chartink_magic_filters_scan()
