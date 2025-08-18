@@ -130,6 +130,7 @@ from data1 import fetch_chartink_scan, scans, FALLBACK_DATA
 import os
 from werkzeug.utils import secure_filename
 from flask import jsonify
+import numpy as np
 
 app = Flask(__name__)
 
@@ -197,9 +198,153 @@ def download_csv():
 def home():
     return render_template('home.html')
 
-@app.route('/tools')
+@app.route('/tools', methods=['GET', 'POST'])
 def tools():
+    if request.method == 'POST' and 'share_file' in request.files:
+        file = request.files['share_file']
+        if file.filename != '':
+            # Save the uploaded file temporarily
+            temp_dir = os.path.join(app.root_path, 'temp')
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            # Generate unique filename to avoid conflicts
+            filename = secure_filename(file.filename)
+            upload_path = os.path.join(temp_dir, f"upload_{filename}")
+            download_path = os.path.join(temp_dir, f"processed_{filename}")
+            
+            # Save the uploaded file
+            file.save(upload_path)
+            
+            try:
+                # Process the file with the macro
+                process_file_with_macro(upload_path, download_path)
+                
+                # Return the processed file for download
+                return send_file(
+                    download_path,
+                    as_attachment=True,
+                    download_name=f"processed_{filename}",
+                    mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                )
+            except Exception as e:
+                # If processing fails, return the original file
+                print(f"Error processing file: {str(e)}")
+                return send_file(upload_path, as_attachment=True)
+    
+    # For GET requests or if no file was uploaded
     return render_template('tools.html')
+
+def process_file_with_macro(input_path, output_path):
+    """
+    Process the Excel file with the macro
+    This is a Python implementation of the VBA macro logic from CA_Dayanand_Bongale_Mobile_6362985767
+    """
+    import pandas as pd
+    import numpy as np
+    from openpyxl import load_workbook
+    from openpyxl.styles import PatternFill, Alignment
+    from openpyxl.formatting.rule import ColorScaleRule, FormulaRule
+    
+    # Read the Excel file
+    df = pd.read_excel(input_path)
+    
+    # 1. Delete specific rows and columns (VBA: Rows("1:1").Delete, Columns("A:A").Delete, etc.)
+    # Skip the first row (header)
+    if not df.empty:
+        df = df.iloc[1:].reset_index(drop=True)
+    
+    # 2. Format numbers and remove commas
+    for col in df.select_dtypes(include=[np.number]).columns:
+        df[col] = df[col].astype(str).str.replace(',', '').astype(float)
+    
+    # 3. Add calculations (PCR OI, PCR Volume, etc.)
+    if len(df.columns) >= 7:  # Ensure we have enough columns
+        try:
+            # PCR OI = Column G / Column A (0-based index 6 / 0)
+            df['PCR OI'] = df.iloc[:, 6] / df.iloc[:, 0]
+            
+            # PCR Volume = Column D / Column B (0-based index 3 / 1)
+            df['PCR Volume'] = df.iloc[:, 3] / df.iloc[:, 1]
+            
+            # PCR Change in OI = Column D / Column C (0-based index 3 / 2)
+            df['PCR Change in OI'] = df.iloc[:, 3] / df.iloc[:, 2]
+            
+            # CPR OI = Column A / Column B (0-based index 0 / 1)
+            df['CPR OI'] = df.iloc[:, 0] / df.iloc[:, 1]
+            
+            # CPR Vol = Column C / Column E (0-based index 2 / 4)
+            df['CPR Vol'] = df.iloc[:, 2] / df.iloc[:, 4]
+            
+            # CPR Sum = CPR OI + CPR Vol
+            df['CPR Sum'] = df['CPR OI'] + df['CPR Vol']
+            
+            # PCR Sum = PCR OI + PCR Volume
+            df['PCR Sum'] = df['PCR OI'] + df['PCR Volume']
+            
+            # Add support levels based on PCR Sum
+            conditions = [
+                (df['PCR Sum'] > 8),
+                (df['PCR Sum'] > 5),
+                (df['PCR Sum'] > 3)
+            ]
+            choices = ['Very Good Support', 'Good Support', 'Support']
+            df['PCR Support'] = np.select(conditions, choices, default='')
+            
+            # Add resistance levels based on CPR Sum
+            conditions = [
+                (df['CPR Sum'] > 6),
+                (df['CPR Sum'] > 3)
+            ]
+            choices = ['Very Good Resistance', 'Resistance']
+            df['Resistance'] = np.select(conditions, choices, default='')
+            
+        except Exception as e:
+            print(f"Error in calculations: {str(e)}")
+    
+    # Save the processed data to Excel
+    with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Processed Data')
+        
+        # Get the workbook and worksheet objects
+        workbook = writer.book
+        worksheet = writer.sheets['Processed Data']
+        
+        # Set column widths (similar to VBA's ColumnWidth property)
+        column_widths = {
+            'A': 15, 'B': 15, 'C': 15, 'D': 15, 'E': 15,
+            'F': 15, 'G': 15, 'H': 12, 'I': 12, 'J': 12,
+            'K': 12, 'L': 15, 'M': 12, 'N': 12, 'O': 12, 'P': 20
+        }
+        
+        for col_letter, width in column_widths.items():
+            worksheet.column_dimensions[col_letter].width = width
+        
+        # Center align all cells (similar to VBA's HorizontalAlignment)
+        for row in worksheet.iter_rows():
+            for cell in row:
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+        
+        # Add conditional formatting (similar to VBA's FormatConditions)
+        # This is a simplified version - Excel's conditional formatting is more powerful
+        green_fill = PatternFill(start_color='00FF00', end_color='00FF00', fill_type='solid')
+        
+        # Format cells in column H (PCR OI) where value > 1
+        for row in range(2, len(df) + 2):  # +2 because Excel is 1-based and we have a header
+            cell = worksheet[f'H{row}']
+            if cell.value and isinstance(cell.value, (int, float)) and cell.value > 1:
+                cell.fill = green_fill
+        
+        # Format cells in column I (PCR Volume) where value > 1 and not 'ILLIQUID'
+        for row in range(2, len(df) + 2):
+            cell = worksheet[f'I{row}']
+            if (cell.value and 
+                isinstance(cell.value, (int, float)) and 
+                cell.value > 1 and 
+                (not isinstance(worksheet[f'K{row}'].value, str) or 
+                 'ILLIQUID' not in str(worksheet[f'K{row}'].value).upper())):
+                cell.fill = green_fill
+    
+    return True
 
 @app.route('/tools_macro_upload', methods=['POST'])
 def tools_macro_upload():
@@ -313,6 +458,65 @@ def create_scan_data():
             table_html += '<tr>' + ''.join(f'<td>{row.get(col," ")}</td>' for col in results[0].keys()) + '</tr>'
         table_html += '</table>'
         return f'<h2>Latest Posted Chartink Scan Results</h2>{table_html}'
+
+@app.route('/tools_pcr_analysis', methods=['GET', 'POST'])
+def tools_pcr_analysis():
+    if request.method == 'POST':
+        if 'pcr_file' not in request.files:
+            return 'No file uploaded', 400
+            
+        file = request.files['pcr_file']
+        if file.filename == '':
+            return 'No file selected', 400
+            
+        if file and (file.filename.endswith('.xlsx') or file.filename.endswith('.xls')):
+            try:
+                # Read the Excel file
+                df = pd.read_excel(file)
+                
+                # Process the data (similar to the VBA macro logic)
+                # This is a simplified version - you may need to adjust based on your exact requirements
+                
+                # Example processing (adjust columns as needed):
+                if len(df.columns) >= 7:  # Ensure we have enough columns
+                    # Add PCR calculations
+                    df['PCR OI'] = df.iloc[:, 6] / df.iloc[:, 0]  # Adjust indices based on your data
+                    df['PCR Volume'] = df.iloc[:, 3] / df.iloc[:, 1]  # Adjust indices
+                    df['PCR Change in OI'] = df.iloc[:, 3] / df.iloc[:, 2]  # Adjust indices
+                    
+                    # Add CPR calculations
+                    df['CPR OI'] = df.iloc[:, 0] / df.iloc[:, 1]  # Adjust indices
+                    df['CPR Vol'] = df.iloc[:, 2] / df.iloc[:, 4]  # Adjust indices
+                    df['CPR Sum'] = df['CPR OI'] + df['CPR Vol']
+                    
+                    # Add support/resistance levels
+                    df['PCR Sum'] = df['PCR OI'] + df['PCR Volume']
+                    
+                    # Add support levels
+                    conditions = [
+                        (df['PCR Sum'] > 8),
+                        (df['PCR Sum'] > 5),
+                        (df['PCR Sum'] > 3)
+                    ]
+                    choices = ['Very Good Support', 'Good Support', 'Support']
+                    df['PCR Support'] = np.select(conditions, choices, default='')
+                    
+                    # Add resistance levels
+                    conditions = [
+                        (df['CPR Sum'] > 6),
+                        (df['CPR Sum'] > 3)
+                    ]
+                    choices = ['Very Good Resistance', 'Resistance']
+                    df['Resistance'] = np.select(conditions, choices, default='')
+                    
+                    # Convert to HTML for display
+                    results_html = df.to_html(classes='table table-striped', index=False)
+                    return render_template('pcr_analysis.html', results=results_html)
+                    
+            except Exception as e:
+                return f'Error processing file: {str(e)}', 400
+                
+    return render_template('pcr_analysis.html')
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

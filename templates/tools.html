@@ -208,21 +208,25 @@ End Sub
                     <h5 class="mt-4">How to Use:</h5>
                     <ol>
                         <li>Copy the macro above using the "Copy Macro" button.</li>
-                        <li>Open your Excel file and press <b>Alt+F11</b> to open the VBA editor.</li>
-                        <li>Insert a new module and paste the macro code.</li>
-                        <li>Run the macro to process your data as described.</li>
+                        <li>Open Excel and press Alt + F11 to open the VBA editor.</li>
+                        <li>Insert a new module and paste the code.</li>
+                        <li>Run the macro from Excel.</li>
                     </ol>
-                    <hr>
-                    <h5>Try It Yourself:</h5>
-                    <p>
-                        Upload your Excel, CSV, or plain text file here to share or download it. (Macro processing must be done in Excel.)
-                    </p>
-                    <form method="POST" action="/tools_macro_upload" enctype="multipart/form-data">
-                        <input type="file" name="excel_file" accept=".xls,.xlsx,.csv,.txt" class="form-control mb-2" required>
+                </div>
+
+                <div class="card p-4 mb-4">
+                    <h2>Try It Yourself</h2>
+                    <p>Upload your Excel, CSV, or plain text file here to share or download it. (Macro processing must be done in Excel.)</p>
+                    
+                    <form method="POST" enctype="multipart/form-data" action="/tools">
+                        <div class="mb-3">
+                            <input type="file" class="form-control" id="shareFile" name="share_file" accept=".xlsx,.xls,.csv,.txt">
+                            <div class="form-text">Note: Macro processing must be done in Excel. This upload/download is for sharing files only. TXT files are also supported for upload/download.</div>
+                        </div>
                         <button type="submit" class="btn btn-primary">Upload & Download</button>
                     </form>
-                    <small class="text-muted">Note: Macro processing must be done in Excel. This upload/download is for sharing files only. TXT files are also supported for upload/download.</small>
                 </div>
+
                 <div class="card p-4 mb-4">
                     <h2>Get Data from NSE Option Chain</h2>
                     <p>
@@ -238,13 +242,10 @@ End Sub
                             On the NSE page, select your desired symbol and expiry, then click the <b>Download CSV</b> button to get the data.
                         </li>
                         <li>
-                            Upload the downloaded CSV file here (or convert to Excel if needed), then use the macro tool below to process and analyze your data.
+                            Upload the downloaded CSV file here (or convert to Excel if needed), then use the macro tool above to process and analyze your data.
                         </li>
                     </ol>
-                    <small class="text-muted">Note: Downloaded CSV files from NSE can be uploaded below and processed using the macro in Excel.</small>
-                </div>
-                <div style="margin-top:30px;">
-                    <a href="/tools_paper_trading" style="background:linear-gradient(90deg,#f76b1c 0%,#fad961 100%);color:#fff;padding:10px 22px;border-radius:8px;font-weight:700;text-decoration:none;font-family:'Montserrat','Roboto',Arial,sans-serif;">Go to Paper Trading</a>
+                    <small class="text-muted">Note: Downloaded CSV files from NSE can be uploaded above and processed using the macro in Excel.</small>
                 </div>
             </div>
         </div>

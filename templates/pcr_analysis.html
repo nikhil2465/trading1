@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PCR Analysis Tool - Bollinger Band & RSI Scanner</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body { background: #e3f0ff; min-height: 100vh; }
+        .footer { margin-top: 40px; padding: 20px 0; background: #f8f9fa; text-align: center; color: #888; font-size: 0.95rem; }
+        .analysis-box { 
+            background: #fff; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07); 
+            padding: 1.5rem; 
+            margin-bottom: 2rem; 
+        }
+        .table-responsive {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">Bollinger Band & RSI Scanner</a>
+            <div>
+                <a class="btn btn-link" href="/home">Home</a>
+                <a class="btn btn-link" href="/tools">Tools</a>
+                <a class="btn btn-primary" href="/tools_pcr_analysis">PCR Analysis</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="analysis-box">
+                    <h2>PCR Analysis Tool</h2>
+                    <p class="text-muted">Upload your Excel file to perform PCR (Put-Call Ratio) analysis.</p>
+                    
+                    <form method="POST" enctype="multipart/form-data" action="/tools_pcr_analysis">
+                        <div class="mb-3">
+                            <label for="pcrFile" class="form-label">Select Excel File</label>
+                            <input class="form-control" type="file" id="pcrFile" name="pcr_file" accept=".xlsx,.xls" required>
+                            <div class="form-text">Please upload an Excel file containing your options data.</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Analyze</button>
+                    </form>
+                    
+                    {% if results %}
+                    <div class="table-responsive mt-4">
+                        <h4>Analysis Results</h4>
+                        {{ results|safe }}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mt-4">
+                        <h5>How to Use:</h5>
+                        <ol>
+                            <li>Prepare your Excel file with the required columns (adjust column indices in the code if needed):
+                                <ul>
+                                    <li>Column 1: Open Interest (OI) data</li>
+                                    <li>Column 2: Volume data</li>
+                                    <li>Column 3: Change in OI data</li>
+                                    <li>Other columns as per your data structure</li>
+                                </ul>
+                            </li>
+                            <li>Click "Choose File" and select your Excel file</li>
+                            <li>Click "Analyze" to process the data</li>
+                            <li>View the PCR analysis results in the table below</li>
+                        </ol>
+                        
+                        <div class="alert alert-info mt-3">
+                            <strong>Note:</strong> The current implementation uses default column indices. 
+                            You may need to adjust the column indices in the code to match your Excel file structure.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">© 2023 Bollinger Band & RSI Scanner. All rights reserved.</span>
+        </div>
+    </footer>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
