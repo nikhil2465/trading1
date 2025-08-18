@@ -5,27 +5,39 @@
 # import json
 # import time
 
-# FALLBACK_DATA = {
-#     "bullish": [
-#         {"nsecode": "INFY", "name": "Infosys Ltd", "close": 1450.25, "volume": 1250000},
-#         {"nsecode": "TCS", "name": "Tata Consultancy Services", "close": 3550.75, "volume": 980000},
-#     ],
-#     "bearish": [
-#         {"nsecode": "RELIANCE", "name": "Reliance Industries", "close": 2500.10, "volume": 1450000},
-#         {"nsecode": "HDFCBANK", "name": "HDFC Bank", "close": 1600.55, "volume": 870000},
-#     ],
-#     "screenshot1_bearish_like": [
-#         {"nsecode": "ICICIBANK", "name": "ICICI Bank", "close": 950.20, "volume": 720000},
-#     ],
-#     "screenshot2_bullish_like": [
-#         {
-#             "nsecode": "TCS",
-#             "name": "Tata Consultancy Services Limited",
-#             "close": 3035.4,
-#             "volume": 3358232
-#         }
-#     ]
-# }
+FALLBACK_DATA = {
+    "bullish": [
+        {"nsecode": "INFY", "name": "Infosys Ltd", "close": 1450.25, "volume": 1250000},
+        {"nsecode": "TCS", "name": "Tata Consultancy Services", "close": 3550.75, "volume": 980000},
+    ],
+    "bearish": [
+        {"nsecode": "RELIANCE", "name": "Reliance Industries", "close": 2500.10, "volume": 1450000},
+        {"nsecode": "HDFCBANK", "name": "HDFC Bank", "close": 1600.55, "volume": 870000},
+    ],
+    "screenshot1_bearish_like": [
+        {"nsecode": "ICICIBANK", "name": "ICICI Bank", "close": 950.20, "volume": 720000},
+    ],
+    "screenshot2_bullish_like": [
+        {"nsecode": "TCS", "name": "Tata Consultancy Services Limited", "close": 3035.4, "volume": 3358232}
+    ],
+   "magic_filters": [  # Updated with % Chg from screenshot
+        {"nsecode": "HINDUNILVR", "name": "Hindustan Unilever Limited", "close": 2504.75, "per_chg": 1.40, "volume": 1842390},
+        {"nsecode": "IOC", "name": "Indian Oil Corporation Limited", "close": 164.15, "per_chg": 3.88, "volume": 24550149},
+        {"nsecode": "TITAN", "name": "Titan Company Limited", "close": 3385.50, "per_chg": -0.14, "volume": 1035029},
+        {"nsecode": "COLPAL", "name": "Colgate Palmolive (India) Limited", "close": 2846.50, "per_chg": 0.38, "volume": 306210},
+        {"nsecode": "SUNPHARMA", "name": "Sun Pharmaceutical Industries Limited", "close": 1489.85, "per_chg": 0.36, "volume": 2189247},
+        {"nsecode": "NTPC", "name": "NTPC Limited", "close": 323.50, "per_chg": 0.96, "volume": 11098307},
+        {"nsecode": "TATASTEEL", "name": "Tata Steel Limited", "close": 150.60, "per_chg": 1.21, "volume": 37221307},
+        {"nsecode": "UPL", "name": "UPL Limited", "close": 519.25, "per_chg": 1.25, "volume": 2630420},
+        {"nsecode": "IDFC", "name": "IDFC Limited", "close": 113.50, "per_chg": 0.44, "volume": 3521370},
+        {"nsecode": "BPCL", "name": "Bharat Petroleum Corporation Limited", "close": 581.80, "per_chg": 2.79, "volume": 6645436},
+        {"nsecode": "COROMANDEL", "name": "Coromandel International Limited", "close": 1225.60, "per_chg": 0.60, "volume": 305646},
+        {"nsecode": "CUMMINSIND", "name": "Cummins India Limited", "close": 2646.35, "per_chg": 0.80, "volume": 348273},
+        {"nsecode": "HEROMOTOCO", "name": "Hero MotoCorp Limited", "close": 4732.40, "per_chg": 0.24, "volume": 470420},
+        {"nsecode": "UNITEDSPIR", "name": "United Spirits Limited", "close": 1143.45, "per_chg": 0.68, "volume": 652415},
+        {"nsecode": "DLF", "name": "DLF Limited", "close": 815.65, "per_chg": 0.28, "volume": 2073475},
+    ]
+}
 
 # def fetch_chartink_scan(scan_clause):
 #     user_agents = [
@@ -188,6 +200,23 @@ FALLBACK_DATA = {
     ],
     "screenshot2_bullish_like": [
         {"nsecode": "TCS", "name": "Tata Consultancy Services Limited", "close": 3035.4, "volume": 3358232}
+    ],
+   "magic_filters": [  # Updated with % Chg from screenshot
+        {"nsecode": "HINDUNILVR", "name": "Hindustan Unilever Limited", "close": 2504.75, "per_chg": 1.40, "volume": 1842390},
+        {"nsecode": "IOC", "name": "Indian Oil Corporation Limited", "close": 164.15, "per_chg": 3.88, "volume": 24550149},
+        {"nsecode": "TITAN", "name": "Titan Company Limited", "close": 3385.50, "per_chg": -0.14, "volume": 1035029},
+        {"nsecode": "COLPAL", "name": "Colgate Palmolive (India) Limited", "close": 2846.50, "per_chg": 0.38, "volume": 306210},
+        {"nsecode": "SUNPHARMA", "name": "Sun Pharmaceutical Industries Limited", "close": 1489.85, "per_chg": 0.36, "volume": 2189247},
+        {"nsecode": "NTPC", "name": "NTPC Limited", "close": 323.50, "per_chg": 0.96, "volume": 11098307},
+        {"nsecode": "TATASTEEL", "name": "Tata Steel Limited", "close": 150.60, "per_chg": 1.21, "volume": 37221307},
+        {"nsecode": "UPL", "name": "UPL Limited", "close": 519.25, "per_chg": 1.25, "volume": 2630420},
+        {"nsecode": "IDFC", "name": "IDFC Limited", "close": 113.50, "per_chg": 0.44, "volume": 3521370},
+        {"nsecode": "BPCL", "name": "Bharat Petroleum Corporation Limited", "close": 581.80, "per_chg": 2.79, "volume": 6645436},
+        {"nsecode": "COROMANDEL", "name": "Coromandel International Limited", "close": 1225.60, "per_chg": 0.60, "volume": 305646},
+        {"nsecode": "CUMMINSIND", "name": "Cummins India Limited", "close": 2646.35, "per_chg": 0.80, "volume": 348273},
+        {"nsecode": "HEROMOTOCO", "name": "Hero MotoCorp Limited", "close": 4732.40, "per_chg": 0.24, "volume": 470420},
+        {"nsecode": "UNITEDSPIR", "name": "United Spirits Limited", "close": 1143.45, "per_chg": 0.68, "volume": 652415},
+        {"nsecode": "DLF", "name": "DLF Limited", "close": 815.65, "per_chg": 0.28, "volume": 2073475},
     ]
 }
 
@@ -308,7 +337,8 @@ scans = {
     'bullish': '( {futidx} ( weekly rsi(14) <= 30 and weekly close <= weekly lower bollinger(20,2) ) )',
     'bearish': '( {futidx} ( weekly rsi(14) >= 70 and weekly close >= weekly upper bollinger(20,2) ) )',
     'screenshot1_bearish_like': '( {futidx} ( weekly upper bollinger(20,2) > weekly close and weekly rsi(14) >= 70 ) )',
-    'screenshot2_bullish_like': '( {futidx} ( weekly lower bollinger(20,2) < weekly close and weekly rsi(14) <= 30 ) )'
+    'screenshot2_bullish_like': '( {futidx} ( weekly lower bollinger(20,2) < weekly close and weekly rsi(14) <= 30 ) )',
+    'magic_filters': '( {futidx} ( weekly rsi(14) <= 30 and weekly close <= weekly lower bollinger(20,2) ) ) or ( {futidx} ( weekly rsi(14) >= 70 and weekly close >= weekly upper bollinger(20,2) ) )'
 }
 
 def run_chanakya_analysis(csv_filename):
@@ -374,7 +404,7 @@ if __name__ == "__main__":
             if fallback_list:
                 pd.DataFrame(fallback_list).to_csv(f'{scan_name}_stocks.csv', index=False)
         time.sleep(10)
-    
+
     # Option chain feature (does not affect existing scans)
     user_symbol = input("Enter NSE symbol for option chain (or press Enter to skip): ").strip()
     if user_symbol:
@@ -383,7 +413,7 @@ if __name__ == "__main__":
             run_macro = input("Run macro on option chain CSV? (y/n): ").strip().lower()
             if run_macro == "y":
                 run_macro_on_option_chain(csv_file)
-    
+
     # Option chain feature for multiple symbols (does not affect existing scans)
     user_symbols = input("Enter NSE symbols for option chain (comma-separated, or press Enter to skip): ").strip()
     if user_symbols:

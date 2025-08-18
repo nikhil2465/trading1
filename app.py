@@ -129,6 +129,7 @@ import pandas as pd
 from data1 import fetch_chartink_scan, scans, FALLBACK_DATA
 import os
 from werkzeug.utils import secure_filename
+from flask import jsonify
 
 app = Flask(__name__)
 
@@ -176,7 +177,7 @@ def download_csv():
     # Get scan_type from the form to regenerate CSV
     scan_type = request.form.get('scan_type')
     clause = scans.get(scan_type)
-    
+
     if clause:
         df = fetch_chartink_scan(clause)
         if df is None or df.empty:
@@ -240,6 +241,78 @@ def tools_paper_trading():
 
 # The /tools_macro_upload route already supports .txt files as uploaded.
 # No changes required unless you want to process TXT data server-side.
+
+################################
+
+# Updated /create_scan route with better column mapping
+@app.route('/create_scan', methods=['GET', 'POST'])
+def create_scan():
+    results_html = None
+    error = None
+    status = None
+    scan_clause = '( {futidx} ( weekly rsi(14) <= 30 and weekly close <= weekly lower bollinger(20,2) ) ) or ( {futidx} ( weekly rsi(14) >= 70 and weekly close >= weekly upper bollinger(20,2) ) )'  # Default from screenshot
+
+    if request.method == 'POST':
+        scan_clause = request.form.get('scan_clause', scan_clause)
+        df = fetch_chartink_scan(scan_clause)
+        if df is not None and not df.empty:
+            # Map columns to match Chartink screenshot
+            if all(col in df.columns for col in ['nsecode', 'name', 'close', 'per_chg', 'volume']):
+                df = df[['nsecode', 'name', 'close', 'per_chg', 'volume']]
+                df.columns = ['Symbol', 'Name', 'LTP', '% Chg', 'Volume']
+            elif all(col in df.columns for col in ['nsecode', 'name', 'close', 'volume']):
+                df['% Chg'] = 0.0  # Default if % Chg not available
+                df = df[['nsecode', 'name', 'close', '% Chg', 'volume']]
+                df.columns = ['Symbol', 'Name', 'LTP', '% Chg', 'Volume']
+            results_html = df.to_html(classes='chartink-table', index=False, escape=False, formatters={'% Chg': '{:.2f}'.format, 'LTP': '{:.2f}'.format, 'Volume': '{:.0f}'.format})
+            status = "Live data fetched successfully."
+        else:
+            fallback_df = pd.DataFrame(FALLBACK_DATA.get('magic_filters', []))
+            if not fallback_df.empty:
+                fallback_df = fallback_df[['nsecode', 'name', 'close', 'per_chg', 'volume']]
+                fallback_df.columns = ['Symbol', 'Name', 'LTP', '% Chg', 'Volume']
+                results_html = fallback_df.to_html(classes='chartink-table', index=False, escape=False, formatters={'% Chg': '{:.2f}'.format, 'LTP': '{:.2f}'.format, 'Volume': '{:.0f}'.format})
+                status = "Showing fallback data from screenshot."
+            else:
+                error = "No data available."
+
+    return render_template('create_scan.html', results=results_html, scan_clause=scan_clause, error=error, status=status)
+
+latest_scan_results = []
+
+@app.route('/create_scan/data', methods=['GET', 'POST'])
+def create_scan_data():
+    global latest_scan_results
+    if request.method == 'POST':
+        if request.is_json:
+            data = request.get_json()
+            results = data.get('results', [])
+            if not results:
+                return 'No data received', 400
+            latest_scan_results = results  # Save for GET
+            # Render a simple HTML table
+            table_html = '<table border="1" cellpadding="5"><tr>'
+            if results:
+                for col in results[0].keys():
+                    table_html += f'<th>{col}</th>'
+                table_html += '</tr>'
+                for row in results:
+                    table_html += '<tr>' + ''.join(f'<td>{row.get(col," ")}</td>' for col in results[0].keys()) + '</tr>'
+            table_html += '</table>'
+            return f'<h2>Posted Chartink Scan Results</h2>{table_html}'
+        return 'Expected JSON POST', 400
+    else:  # GET
+        results = latest_scan_results
+        if not results:
+            return '<h2>No scan results posted yet.</h2>'
+        table_html = '<table border="1" cellpadding="5"><tr>'
+        for col in results[0].keys():
+            table_html += f'<th>{col}</th>'
+        table_html += '</tr>'
+        for row in results:
+            table_html += '<tr>' + ''.join(f'<td>{row.get(col," ")}</td>' for col in results[0].keys()) + '</tr>'
+        table_html += '</table>'
+        return f'<h2>Latest Posted Chartink Scan Results</h2>{table_html}'
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
