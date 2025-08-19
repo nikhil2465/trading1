@@ -205,12 +205,34 @@
     Columns("J:J").Hidden = True
 End Sub
 </pre>
-                    <h5 class="mt-4">How to Use:</h5>
-                    <ol>
-                        <li>Copy the macro above using the "Copy Macro" button.</li>
-                        <li>Open Excel and press Alt + F11 to open the VBA editor.</li>
-                        <li>Insert a new module and paste the code.</li>
-                        <li>Run the macro from Excel.</li>
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <h5>How to Use the Macro:</h5>
+                            <ol>
+                                <li>Copy the macro above using the "Copy Macro" button.</li>
+                                <li>Open Excel and press Alt + F11 to open the VBA editor.</li>
+                                <li>Insert a new module and paste the code.</li>
+                                <li>Run the macro on your data.</li>
+                                <li>Save the Excel file after running the macro.</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Process After Macro</h5>
+                                    <p class="card-text">Upload your Excel file after running the macro to get only the required columns:</p>
+                                    <form action="/process_after_macro" method="post" enctype="multipart/form-data">
+                                        <div class="input-group mb-3">
+                                            <input type="file" class="form-control" name="macro_file" accept=".xls,.xlsx" required>
+                                            <button type="submit" class="btn btn-primary">Process File</button>
+                                        </div>
+                                        <small class="text-muted">This will keep only the Chanakya Support and Chanakya Resistance columns.</small>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     </ol>
                 </div>
 

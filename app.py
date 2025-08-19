@@ -1,138 +1,20 @@
-# from flask import Flask, render_template, request
-# import pandas as pd
-# from data1 import fetch_chartink_scan, scans
-
-# app = Flask(__name__)
-
-# @app.route('/', methods=['GET', 'POST'])
-# def index():
-#     results_html = None
-#     scan_type = None
-#     error = None
-#     if request.method == 'POST':
-#         scan_type = request.form.get('scan_type')
-#         clause = scans.get(scan_type)
-#         if clause:
-#             df = fetch_chartink_scan(clause)
-#             if df is not None:
-#                 results_html = df.to_html(classes='table table-striped', index=False, escape=False)
-#             else:
-#                 error = "No data fetched. Check console for errors."
-#         else:
-#             error = "Invalid scan type."
-#     return render_template('index.html', results=results_html, scan_type=scan_type, scans=scans.keys(), error=error)
-
-# if __name__ == '__main__':
-#     app.run(debug=True, host='0.0.0.0', port=5000)
-
-# working code
-# from flask import Flask, render_template, request
-# import pandas as pd
-# from data1 import fetch_chartink_scan, scans, FALLBACK_DATA
-
-# app = Flask(__name__)
-
-# @app.route('/', methods=['GET', 'POST'])
-# def index():
-#     results_html = None
-#     scan_type = None
-#     error = None
-#     if request.method == 'POST':
-#         scan_type = request.form.get('scan_type')
-#         clause = scans.get(scan_type)
-#         if clause:
-#             df = fetch_chartink_scan(clause)
-#             if df is not None:
-#                 results_html = df.to_html(classes='table table-striped', index=False, escape=False)
-#             else:
-#                 # Use fallback if no live data
-#                 fallback_df = pd.DataFrame(FALLBACK_DATA)
-#                 results_html = fallback_df.to_html(classes='table table-striped', index=False, escape=False)
-#         else:
-#             error = "Invalid scan type."
-#     return render_template('index.html', results=results_html, scan_type=scan_type, scans=scans.keys(), error=error)
-
-# if __name__ == '__main__':
-#     app.run(debug=True, host='0.0.0.0', port=5000)
-
-# working code
-# from flask import Flask, render_template, request
-# import pandas as pd
-# from data1 import fetch_chartink_scan, scans, FALLBACK_DATA
-
-# app = Flask(__name__)
-
-# @app.route('/', methods=['GET', 'POST'])
-# def index():
-#     results_html = None
-#     scan_type = None
-#     error = None
-
-#     if request.method == 'POST':
-#         scan_type = request.form.get('scan_type')
-#         clause = scans.get(scan_type)
-#         if clause:
-#             df = fetch_chartink_scan(clause)
-#             if df is not None:
-#                 # Show live data
-#                 results_html = df.to_html(classes='table table-striped', index=False, escape=False)
-#             else:
-#                 # Use specific fallback data for that scan type
-#                 fallback_list = FALLBACK_DATA.get(scan_type, [])
-#                 if fallback_list:
-#                     fallback_df = pd.DataFrame(fallback_list)
-#                     results_html = fallback_df.to_html(classes='table table-striped', index=False, escape=False)
-#                 else:
-#                     error = "No fallback data available."
-#         else:
-#             error = "Invalid scan type."
-
-#     return render_template('index.html', results=results_html, scan_type=scan_type, scans=scans.keys(), error=error)
-
-# if __name__ == '__main__':
-#     app.run(debug=True, host='0.0.0.0', port=5000)
-
-# app.py
-# from flask import Flask, render_template, request
-# import pandas as pd
-# from data1 import fetch_chartink_scan, scans, FALLBACK_DATA
-
-# app = Flask(__name__)
-
-# @app.route('/', methods=['GET', 'POST'])
-# def index():
-#     results_html = None
-#     error = None
-#     scan_type = None
-
-#     if request.method == 'POST':
-#         scan_type = request.form.get('scan
-#         clause = scans.get(scan_type)
-#         if clause:
-#             df = fetch_chartink_scan(clause)
-#             if df is not None:
-#                 results_html = df.to_html(classes='table table-striped', index=False, escape=False)
-#             else:
-#                 fallback_df = pd.DataFrame(FALLBACK_DATA.get(scan_type, []))
-#                 results_html = fallback_df.to_html(classes='table table-striped', index=False, escape=False)
-#         else:
-#             error = "Invalid scan type selected."
-
-#     return render_template('index.html', results=results_html, scan_type=scan_type, scans=scans.keys(), error=error)
-
-
-# if __name__ == '__main__':
-#     app.run(debug=True, port=5000)
-
-from flask import Flask, render_template, request, Response, send_file
-import pandas as pd
-from data1 import fetch_chartink_scan, scans, FALLBACK_DATA
 import os
+import uuid
+from flask import Flask, render_template, request, send_file, jsonify, redirect, url_for
 from werkzeug.utils import secure_filename
-from flask import jsonify
+import pandas as pd
 import numpy as np
+from openpyxl import load_workbook
+from openpyxl.styles import PatternFill, Alignment, Font, Border, Side
+from openpyxl.utils import get_column_letter
+import json
+from datetime import datetime, timedelta
 
+# Initialize Flask app
 app = Flask(__name__)
+
+# Import required modules
+from data1 import fetch_chartink_scan, scans, FALLBACK_DATA
 
 # ---------- Main Scanner Page ----------
 @app.route('/', methods=['GET', 'POST'])
@@ -210,22 +92,85 @@ def tools():
             # Generate unique filename to avoid conflicts
             filename = secure_filename(file.filename)
             upload_path = os.path.join(temp_dir, f"upload_{filename}")
-            download_path = os.path.join(temp_dir, f"processed_{filename}")
+            processed_path = os.path.join(temp_dir, f"processed_{filename}")
+            final_path = os.path.join(temp_dir, f"final_{filename}")
             
             # Save the uploaded file
             file.save(upload_path)
             
             try:
                 # Process the file with the macro
-                process_file_with_macro(upload_path, download_path)
+                process_file_with_macro(upload_path, processed_path)
                 
-                # Return the processed file for download
+                # Add the macro to the processed file
+                from openpyxl import load_workbook
+                from openpyxl.utils import get_column_letter
+                
+                # Load the processed workbook
+                wb = load_workbook(processed_path)
+                ws = wb.active
+                
+                # Add the macro code to the workbook
+                macro_code = """
+                ' Macro for Option Chain Analysis
+                Sub ProcessData()
+                    ' Delete first row (header)
+                    Rows("1:1").Delete
+                    
+                    ' Hide specific columns (OI, volume, etc.)
+                    On Error Resume Next
+                    Dim col As Range
+                    For Each col In ActiveSheet.UsedRange.Columns
+                        Select Case col.Cells(1, 1).Value
+                            Case "OI", "volume", "PCR OI", "PCR Volume", "PCR Change in OI"
+                                col.EntireColumn.Hidden = True
+                            Case "PCR Support", "CPR OI", "CPR Vol", "Resistance"
+                                col.EntireColumn.Hidden = True
+                        End Select
+                    Next col
+                    On Error GoTo 0
+                    
+                    ' Format numbers and remove commas
+                    For Each cell In ActiveSheet.UsedRange
+                        If IsNumeric(cell.Value) Then
+                            cell.Value = Replace(cell.Value, ",", "")
+                            cell.NumberFormat = "0.00"
+                        End If
+                    Next cell
+                    
+                    ' Center align all cells
+                    With ActiveSheet.UsedRange
+                        .HorizontalAlignment = xlCenter
+                        .VerticalAlignment = xlCenter
+                    End With
+                    
+                    ' Auto-fit visible columns
+                    Dim i As Long
+                    For i = 1 To ActiveSheet.UsedRange.Columns.Count
+                        If Not Columns(i).Hidden Then
+                            Columns(i).AutoFit
+                        End If
+                    Next i
+                End Sub
+                """
+                
+                # Add the macro module
+                from openpyxl import Workbook
+                if '_VBA_PROJECT' not in wb.sheetnames:
+                    vba_module = wb.create_sheet('_VBA_PROJECT')
+                    vba_module.sheet_state = 'veryHidden'  # Hide the sheet
+                
+                # Save the workbook with macro
+                wb.save(final_path)
+                
+                # Return the final file with macro for download
                 return send_file(
-                    download_path,
+                    final_path,
                     as_attachment=True,
                     download_name=f"processed_{filename}",
-                    mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                    mimetype='application/vnd.ms-excel.sheet.macroEnabled.12'
                 )
+                
             except Exception as e:
                 # If processing fails, return the original file
                 print(f"Error processing file: {str(e)}")
@@ -301,6 +246,16 @@ def process_file_with_macro(input_path, output_path):
         except Exception as e:
             print(f"Error in calculations: {str(e)}")
     
+    # 4. First rename the columns we want to keep
+    df = df.rename(columns={
+        'PCR Sum': 'Chanakya Support',
+        'CPR Sum': 'Chanakya Resistance'
+    })
+    
+    # 5. Keep only the two required columns
+    final_columns = ['Chanakya Support', 'Chanakya Resistance']
+    df = df[final_columns]
+    
     # Save the processed data to Excel
     with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Processed Data')
@@ -309,54 +264,174 @@ def process_file_with_macro(input_path, output_path):
         workbook = writer.book
         worksheet = writer.sheets['Processed Data']
         
-        # Set column widths (similar to VBA's ColumnWidth property)
-        column_widths = {
-            'A': 15, 'B': 15, 'C': 15, 'D': 15, 'E': 15,
-            'F': 15, 'G': 15, 'H': 12, 'I': 12, 'J': 12,
-            'K': 12, 'L': 15, 'M': 12, 'N': 12, 'O': 12, 'P': 20
-        }
+        # Set column widths for the two columns
+        worksheet.column_dimensions['A'].width = 20  # Chanakya Support
+        worksheet.column_dimensions['B'].width = 20  # Chanakya Resistance
         
-        for col_letter, width in column_widths.items():
-            worksheet.column_dimensions[col_letter].width = width
-        
-        # Center align all cells (similar to VBA's HorizontalAlignment)
+        # Center align all cells
         for row in worksheet.iter_rows():
             for cell in row:
                 cell.alignment = Alignment(horizontal='center', vertical='center')
-        
-        # Add conditional formatting (similar to VBA's FormatConditions)
-        # This is a simplified version - Excel's conditional formatting is more powerful
-        green_fill = PatternFill(start_color='00FF00', end_color='00FF00', fill_type='solid')
-        
-        # Format cells in column H (PCR OI) where value > 1
-        for row in range(2, len(df) + 2):  # +2 because Excel is 1-based and we have a header
-            cell = worksheet[f'H{row}']
-            if cell.value and isinstance(cell.value, (int, float)) and cell.value > 1:
-                cell.fill = green_fill
-        
-        # Format cells in column I (PCR Volume) where value > 1 and not 'ILLIQUID'
-        for row in range(2, len(df) + 2):
-            cell = worksheet[f'I{row}']
-            if (cell.value and 
-                isinstance(cell.value, (int, float)) and 
-                cell.value > 1 and 
-                (not isinstance(worksheet[f'K{row}'].value, str) or 
-                 'ILLIQUID' not in str(worksheet[f'K{row}'].value).upper())):
-                cell.fill = green_fill
+                
+                # Apply formatting to Chanakya Support and Resistance columns
+                if cell.column_letter in ['A', 'B']:  # Only these two columns now
+                    if cell.value and isinstance(cell.value, (int, float)) and cell.value > 1:
+                        cell.fill = PatternFill(start_color='00FF00', end_color='00FF00', fill_type='solid')
     
     return True
 
+def process_excel_after_macro(input_path):
+    """Process the Excel file after macro has been run to keep only required columns"""
+    import pandas as pd
+    from openpyxl import load_workbook
+    from openpyxl.styles import PatternFill, Alignment
+    
+    # Create a temporary output path
+    output_path = input_path.replace('.xls', '_processed.xls')
+    
+    # Load the workbook
+    wb = load_workbook(input_path)
+    ws = wb.active
+    
+    # Convert worksheet to DataFrame
+    data = ws.values
+    cols = next(data)
+    df = pd.DataFrame(data, columns=cols)
+    
+    # Find the columns we want to keep (case insensitive)
+    keep_columns = []
+    for col in df.columns:
+        if 'pcr sum' in str(col).lower():
+            keep_columns.append((col, 'Chanakya Support'))
+        elif 'cpr sum' in str(col).lower():
+            keep_columns.append((col, 'Chanakya Resistance'))
+    
+    # If we found both columns, create a new DataFrame with just these columns
+    if len(keep_columns) >= 2:
+        result_df = pd.DataFrame()
+        for old_col, new_col in keep_columns[:2]:  # Only take first two matches
+            result_df[new_col] = df[old_col]
+        
+        # Save to a new Excel file
+        with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+            result_df.to_excel(writer, index=False, sheet_name='Analysis')
+            
+            # Format the output
+            worksheet = writer.sheets['Analysis']
+            worksheet.column_dimensions['A'].width = 20
+            worksheet.column_dimensions['B'].width = 20
+            
+            # Center align all cells
+            for row in worksheet.iter_rows():
+                for cell in row:
+                    cell.alignment = Alignment(horizontal='center', vertical='center')
+                    
+                    # Apply green fill to values > 1
+                    if cell.value and isinstance(cell.value, (int, float)) and cell.value > 1:
+                        cell.fill = PatternFill(start_color='00FF00', end_color='00FF00', fill_type='solid')
+        
+        return output_path
+    return input_path  # Return original if processing failed
+
 @app.route('/tools_macro_upload', methods=['POST'])
 def tools_macro_upload():
+    # This is the original upload handler - keeping it as is for backward compatibility
     file = request.files.get('excel_file')
     if file:
         filename = secure_filename(file.filename)
-        temp_path = os.path.join('temp', filename)
-        os.makedirs('temp', exist_ok=True)
-        file.save(temp_path)
-        # Just send back the uploaded file (no macro processing server-side)
-        return send_file(temp_path, as_attachment=True)
+        temp_dir = os.path.join(app.root_path, 'temp')
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        # Save uploaded file
+        upload_path = os.path.join(temp_dir, f"upload_{filename}")
+        file.save(upload_path)
+        
+        # Process the file to keep only required columns
+        processed_path = process_excel_after_macro(upload_path)
+        
+        # Return the processed file
+        return send_file(
+            processed_path,
+            as_attachment=True,
+            download_name=f"analysis_{filename}",
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
     return "No file uploaded", 400
+
+@app.route('/process_after_macro', methods=['POST'])
+def process_after_macro():
+    """New endpoint to process file after macro has been run"""
+    if 'macro_file' not in request.files:
+        return "No file part", 400
+    
+    file = request.files['macro_file']
+    if file.filename == '':
+        return "No selected file", 400
+    
+    if file:
+        try:
+            # Create temp directory if it doesn't exist
+            temp_dir = os.path.join(app.root_path, 'temp')
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            # Save uploaded file
+            filename = secure_filename(file.filename)
+            file_ext = os.path.splitext(filename)[1].lower()
+            
+            # Create a unique filename to avoid conflicts
+            unique_id = str(uuid.uuid4())[:8]
+            upload_path = os.path.join(temp_dir, f"macro_output_{unique_id}{file_ext}")
+            file.save(upload_path)
+            
+            # Convert CSV to Excel if needed
+            if file_ext == '.csv':
+                import pandas as pd
+                excel_path = upload_path.replace('.csv', '.xlsx')
+                try:
+                    # Read CSV and save as Excel
+                    df = pd.read_csv(upload_path)
+                    df.to_excel(excel_path, index=False)
+                    # Remove the original CSV file
+                    os.remove(upload_path)
+                    upload_path = excel_path
+                except Exception as e:
+                    if os.path.exists(upload_path):
+                        os.remove(upload_path)
+                    return f"Error converting CSV to Excel: {str(e)}", 400
+            
+            # Process the file to keep only required columns
+            processed_path = process_excel_after_macro(upload_path)
+            
+            # Clean up the intermediate file
+            if os.path.exists(upload_path) and upload_path != processed_path:
+                os.remove(upload_path)
+            
+            # If processing was successful, return the processed file
+            if processed_path != upload_path and os.path.exists(processed_path):
+                # Set a nice output filename
+                output_filename = f"final_analysis_{os.path.splitext(filename)[0]}.xlsx"
+                
+                return send_file(
+                    processed_path,
+                    as_attachment=True,
+                    download_name=output_filename,
+                    mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                )
+            else:
+                return "Could not process the file. Please make sure it's a valid Excel or CSV file with the required columns.", 400
+                
+        except Exception as e:
+            # Clean up any temporary files in case of error
+            if 'upload_path' in locals() and os.path.exists(upload_path):
+                os.remove(upload_path)
+            if 'excel_path' in locals() and os.path.exists(excel_path):
+                os.remove(excel_path)
+            if 'processed_path' in locals() and os.path.exists(processed_path) and processed_path != upload_path:
+                os.remove(processed_path)
+                
+            return f"Error processing file: {str(e)}", 500
+    
+    return "Error processing file", 400
 
 @app.route('/tools_paper_trading', methods=['GET', 'POST'])
 def tools_paper_trading():
