@@ -249,11 +249,12 @@ def process_file_with_macro(input_path, output_path):
     # 4. First rename the columns we want to keep
     df = df.rename(columns={
         'PCR Sum': 'Chanakya Support',
-        'CPR Sum': 'Chanakya Resistance'
+        'CPR Sum': 'Chanakya Resistance',
+        df.columns[0]: 'Strike Price'  # Keep the first column as Strike Price
     })
     
-    # 5. Keep only the two required columns
-    final_columns = ['Chanakya Support', 'Chanakya Resistance']
+    # 5. Keep only the required columns
+    final_columns = ['Strike Price', 'Chanakya Support', 'Chanakya Resistance']
     df = df[final_columns]
     
     # Save the processed data to Excel
@@ -264,9 +265,10 @@ def process_file_with_macro(input_path, output_path):
         workbook = writer.book
         worksheet = writer.sheets['Processed Data']
         
-        # Set column widths for the two columns
-        worksheet.column_dimensions['A'].width = 20  # Chanakya Support
-        worksheet.column_dimensions['B'].width = 20  # Chanakya Resistance
+        # Set column widths for the three columns
+        worksheet.column_dimensions['A'].width = 15  # Strike Price
+        worksheet.column_dimensions['B'].width = 20  # Chanakya Support
+        worksheet.column_dimensions['C'].width = 20  # Chanakya Resistance
         
         # Center align all cells
         for row in worksheet.iter_rows():
@@ -274,9 +276,14 @@ def process_file_with_macro(input_path, output_path):
                 cell.alignment = Alignment(horizontal='center', vertical='center')
                 
                 # Apply formatting to Chanakya Support and Resistance columns
-                if cell.column_letter in ['A', 'B']:  # Only these two columns now
-                    if cell.value and isinstance(cell.value, (int, float)) and cell.value > 1:
-                        cell.fill = PatternFill(start_color='00FF00', end_color='00FF00', fill_type='solid')
+                if cell.column_letter in ['B', 'C']:  # Only format Support/Resistance columns
+                    if cell.value and isinstance(cell.value, (int, float)):
+                        # Green for Support values above threshold
+                        if cell.column_letter == 'B' and cell.value > 3:
+                            cell.fill = PatternFill(start_color='C6EFCE', end_color='C6EFCE', fill_type='solid')
+                        # Red for Resistance values above threshold
+                        elif cell.column_letter == 'C' and cell.value > 3:
+                            cell.fill = PatternFill(start_color='FFC7CE', end_color='FFC7CE', fill_type='solid')
     
     return True
 
@@ -284,10 +291,11 @@ def process_excel_after_macro(input_path):
     """Process the Excel file after macro has been run to keep only required columns"""
     import pandas as pd
     from openpyxl import load_workbook
-    from openpyxl.styles import PatternFill, Alignment
+    from openpyxl.styles import PatternFill, Alignment, Font
     
-    # Create a temporary output path
-    output_path = input_path.replace('.xls', '_processed.xls')
+    # Create a temporary output path with proper extension
+    base_path = os.path.splitext(input_path)[0]  # Remove any existing extension
+    output_path = f"{base_path}_processed.xlsx"  # Always use .xlsx extension
     
     # Load the workbook
     wb = load_workbook(input_path)
@@ -300,15 +308,27 @@ def process_excel_after_macro(input_path):
     
     # Find the columns we want to keep (case insensitive)
     keep_columns = []
+    strike_price_col = None
+    
+    # Get the strike price column (4th column, index 3 for 0-based indexing)
+    if len(df.columns) > 3:  # Ensure there are at least 4 columns
+        strike_price_col = df.columns[3]  # 4th column (0-based index 3)
+    
+    # Then find PCR and CPR columns
     for col in df.columns:
         if 'pcr sum' in str(col).lower():
             keep_columns.append((col, 'Chanakya Support'))
         elif 'cpr sum' in str(col).lower():
             keep_columns.append((col, 'Chanakya Resistance'))
     
-    # If we found both columns, create a new DataFrame with just these columns
-    if len(keep_columns) >= 2:
+    # If we found the required columns, create a new DataFrame
+    if len(keep_columns) >= 2 and strike_price_col is not None:
         result_df = pd.DataFrame()
+        
+        # Add strike price as the first column
+        result_df['Strike Price'] = df[strike_price_col]
+        
+        # Add support and resistance columns
         for old_col, new_col in keep_columns[:2]:  # Only take first two matches
             result_df[new_col] = df[old_col]
         
@@ -316,19 +336,39 @@ def process_excel_after_macro(input_path):
         with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
             result_df.to_excel(writer, index=False, sheet_name='Analysis')
             
-            # Format the output
+            # Get the workbook and worksheet objects
+            workbook = writer.book
             worksheet = writer.sheets['Analysis']
-            worksheet.column_dimensions['A'].width = 20
-            worksheet.column_dimensions['B'].width = 20
             
-            # Center align all cells
-            for row in worksheet.iter_rows():
-                for cell in row:
+            # Set column widths
+            worksheet.column_dimensions['A'].width = 15  # Strike Price
+            worksheet.column_dimensions['B'].width = 20  # Chanakya Support
+            worksheet.column_dimensions['C'].width = 20  # Chanakya Resistance
+            
+            # Format the header row
+            header_font = Font(bold=True)
+            for cell in worksheet[1]:
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+            
+            # Format the data rows
+            for row in worksheet.iter_rows(min_row=2):
+                for idx, cell in enumerate(row, 1):
                     cell.alignment = Alignment(horizontal='center', vertical='center')
                     
-                    # Apply green fill to values > 1
-                    if cell.value and isinstance(cell.value, (int, float)) and cell.value > 1:
-                        cell.fill = PatternFill(start_color='00FF00', end_color='00FF00', fill_type='solid')
+                    # Format support column (B)
+                    if idx == 2 and isinstance(cell.value, (int, float)):
+                        if cell.value > 5:
+                            cell.fill = PatternFill(start_color='C6EFCE', end_color='C6EFCE', fill_type='solid')
+                        elif cell.value > 3:
+                            cell.fill = PatternFill(start_color='E2F0D9', end_color='E2F0D9', fill_type='solid')
+                    
+                    # Format resistance column (C)
+                    elif idx == 3 and isinstance(cell.value, (int, float)):
+                        if cell.value > 5:
+                            cell.fill = PatternFill(start_color='F4CCCC', end_color='F4CCCC', fill_type='solid')
+                        elif cell.value > 3:
+                            cell.fill = PatternFill(start_color='F8E0E0', end_color='F8E0E0', fill_type='solid')
         
         return output_path
     return input_path  # Return original if processing failed
@@ -593,5 +633,75 @@ def tools_pcr_analysis():
                 
     return render_template('pcr_analysis.html')
 
+@app.route('/run_macro', methods=['POST'])
+def run_macro():
+    """Process Excel file with the macro implementation"""
+    if 'file' not in request.files:
+        return "No file part", 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return "No selected file", 400
+    
+    if file:
+        try:
+            # Create temp directory if it doesn't exist
+            temp_dir = os.path.join(app.root_path, 'temp')
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            # Save uploaded file
+            filename = secure_filename(file.filename)
+            upload_path = os.path.join(temp_dir, f"upload_{filename}")
+            output_path = os.path.join(temp_dir, f"processed_{filename}")
+            file.save(upload_path)
+            
+            # Process the file with the macro
+            success = process_file_with_macro(upload_path, output_path)
+            
+            if success and os.path.exists(output_path):
+                return send_file(
+                    output_path,
+                    as_attachment=True,
+                    download_name=f"processed_{filename}",
+                    mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                )
+            else:
+                return "Error processing file", 500
+                
+        except Exception as e:
+            return f"Error: {str(e)}", 500
+    
+    return "Invalid request", 400
+
+@app.route('/run_personal_macro', methods=['GET'])
+def run_personal_macro():
+    """Process the personal file with macro"""
+    try:
+        # Path to the personal file (adjust as needed)
+        personal_path = os.path.join(app.root_path, 'personal.xlsx')
+        output_path = os.path.join(app.root_path, 'temp', 'processed_personal.xlsx')
+        
+        if os.path.exists(personal_path):
+            # Process the file with the macro
+            success = process_file_with_macro(personal_path, output_path)
+            
+            if success and os.path.exists(output_path):
+                return send_file(
+                    output_path,
+                    as_attachment=True,
+                    download_name="processed_personal.xlsx",
+                    mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                )
+            else:
+                return "Error processing personal file", 500
+        else:
+            return "Personal file not found. Please create a 'personal.xlsx' file in the root directory.", 404
+            
+    except Exception as e:
+        return f"Error: {str(e)}", 500
+
 if __name__ == '__main__':
+    # Create temp directory if it doesn't exist
+    temp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'temp')
+    os.makedirs(temp_dir, exist_ok=True)
     app.run(debug=True, port=5000)

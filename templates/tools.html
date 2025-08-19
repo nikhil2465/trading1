@@ -3,6 +3,7 @@
 <head>
     <title>Tools - Bollinger Band & RSI Scanner</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { background: #e3f0ff; min-height: 100vh; }
         .footer { margin-top: 40px; padding: 20px 0; background: #f8f9fa; text-align: center; color: #888; font-size: 0.95rem; }
@@ -33,8 +34,8 @@
             <div class="col-lg-10">
                 <div class="card p-4 mb-4">
                     <h2>Excel Macro Tool</h2>
-                    <p>
-                        Use the macro below to process your Excel data as described. You can copy the macro and use it in your Excel VBA editor.
+                    <p class="mb-4">
+                        Use the macro below to process your Excel data. Copy and paste this code into your Excel VBA editor.
                         <button class="btn btn-outline-primary btn-sm copy-btn" onclick="copyMacro()">Copy Macro</button>
                     </p>
                     <pre id="macroCode">Sub CA_Dayanand_Bongale_Mobile_6362985767()
@@ -200,11 +201,179 @@
         End If
     Next rngCell
 
+    ' Make strike price column visible and format it
+    Columns("A:A").Hidden = False
+    Columns("A:A").HorizontalAlignment = xlCenter
+    Columns("A:A").VerticalAlignment = xlCenter
+    Range("A1").Value = "Strike Price"
+    
+    ' Format and highlight important columns
+    Columns("L:L").Interior.Color = RGB(255, 255, 200)  ' Light yellow for Support
+    Columns("P:P").Interior.Color = RGB(255, 230, 230)  ' Light red for Resistance
+    
+    ' Format numbers in support/resistance columns
+    Range("L:L,P:P").NumberFormat = "0.000"
+    
+    ' Add conditional formatting for important levels
+    Dim lastRow As Long
+    lastRow = Cells(Rows.Count, "L").End(xlUp).Row
+    
+    ' Highlight Very Good Support (green)
+    With Range("L2:L" & lastRow)
+        .FormatConditions.Add Type:=xlCellValue, Operator:=xlGreater, Formula1:="5"
+        .FormatConditions(.FormatConditions.Count).Interior.Color = RGB(200, 255, 200)  ' Light green
+        .FormatConditions(.FormatConditions.Count).Font.Bold = True
+    End With
+    
+    ' Highlight Good Support (light green)
+    With Range("L2:L" & lastRow)
+        .FormatConditions.Add Type:=xlCellValue, Operator:=xlBetween, Formula1:="3", Formula2:="5"
+        .FormatConditions(.FormatConditions.Count).Interior.Color = RGB(230, 255, 230)  ' Lighter green
+    End With
+    
+    ' Highlight Very Good Resistance (light red)
+    With Range("P2:P" & lastRow)
+        .FormatConditions.Add Type:=xlCellValue, Operator:=xlGreater, Formula1:="5"
+        .FormatConditions(.FormatConditions.Count).Interior.Color = RGB(255, 200, 200)  ' Light red
+        .FormatConditions(.FormatConditions.Count).Font.Bold = True
+    End With
+    
+    ' Highlight Good Resistance (lighter red)
+    With Range("P2:P" & lastRow)
+        .FormatConditions.Add Type:=xlCellValue, Operator:=xlBetween, Formula1:="3", Formula2:="5"
+        .FormatConditions(.FormatConditions.Count).Interior.Color = RGB(255, 230, 230)  ' Lighter red
+    End With
+    
+    ' Auto-fit all columns for better visibility
+    Cells.EntireColumn.AutoFit
+    
+    ' Add a note about the color coding
+    Range("A1").Select
+    ActiveCell.FormulaR1C1 = "Strike Price (Important: See color coding below)"
+    Range("A1").Font.Bold = True
+    Range("A1").Font.Color = RGB(0, 0, 0)
+    
+    ' Add legend
+    Dim legendRow As Long
+    legendRow = lastRow + 3
+    
+    Cells(legendRow, 1).Value = "Color Legend:"
+    Cells(legendRow, 1).Font.Bold = True
+    
+    Cells(legendRow + 1, 1).Value = "Very Good Support (5+)"
+    Cells(legendRow + 1, 1).Interior.Color = RGB(200, 255, 200)
+    
+    Cells(legendRow + 2, 1).Value = "Good Support (3-5)"
+    Cells(legendRow + 2, 1).Interior.Color = RGB(230, 255, 230)
+    
+    Cells(legendRow + 3, 1).Value = "Very Good Resistance (5+)"
+    Cells(legendRow + 3, 1).Interior.Color = RGB(255, 200, 200)
+    
+    Cells(legendRow + 4, 1).Value = "Good Resistance (3-5)"
+    Cells(legendRow + 4, 1).Interior.Color = RGB(255, 230, 230)
+    
+    ' Format legend
+    Range(Cells(legendRow, 1), Cells(legendRow + 4, 1)).Borders.LineStyle = xlContinuous
+    Range(Cells(legendRow, 1), Cells(legendRow + 4, 1)).HorizontalAlignment = xlLeft
+    Range(Cells(legendRow, 1), Cells(legendRow + 4, 1)).VerticalAlignment = xlCenter
+    
+    ' Auto-fit the legend column
+    Columns(1).AutoFit
+    
+    ' Go back to the top
+    Range("A1").Select
+    
+    ' Hide unnecessary columns (keep strike price column visible)
+    ' Make strike price column visible and format it
+    Columns("A:A").Hidden = False
+    Columns("A:A").HorizontalAlignment = xlCenter
+    Columns("A:A").VerticalAlignment = xlCenter
+    Range("A1").Value = "Strike Price"
+    
+    ' Format and highlight important columns
+    Columns("L:L").Interior.Color = RGB(255, 255, 200)  ' Light yellow for Support
+    Columns("P:P").Interior.Color = RGB(255, 230, 230)  ' Light red for Resistance
+    
+    ' Format numbers in support/resistance columns
+    Range("L:L,P:P").NumberFormat = "0.000"
+    
+    ' Add conditional formatting for important levels
+    Dim lastRow As Long
+    lastRow = Cells(Rows.Count, "L").End(xlUp).Row
+    
+    ' Highlight Very Good Support (green)
+    With Range("L2:L" & lastRow)
+        .FormatConditions.Add Type:=xlCellValue, Operator:=xlGreater, Formula1:="5"
+        .FormatConditions(.FormatConditions.Count).Interior.Color = RGB(200, 255, 200)  ' Light green
+        .FormatConditions(.FormatConditions.Count).Font.Bold = True
+    End With
+    
+    ' Highlight Good Support (light green)
+    With Range("L2:L" & lastRow)
+        .FormatConditions.Add Type:=xlCellValue, Operator:=xlBetween, Formula1:="3", Formula2:="5"
+        .FormatConditions(.FormatConditions.Count).Interior.Color = RGB(230, 255, 230)  ' Lighter green
+    End With
+    
+    ' Highlight Very Good Resistance (light red)
+    With Range("P2:P" & lastRow)
+        .FormatConditions.Add Type:=xlCellValue, Operator:=xlGreater, Formula1:="5"
+        .FormatConditions(.FormatConditions.Count).Interior.Color = RGB(255, 200, 200)  ' Light red
+        .FormatConditions(.FormatConditions.Count).Font.Bold = True
+    End With
+    
+    ' Highlight Good Resistance (lighter red)
+    With Range("P2:P" & lastRow)
+        .FormatConditions.Add Type:=xlCellValue, Operator:=xlBetween, Formula1:="3", Formula2:="5"
+        .FormatConditions(.FormatConditions.Count).Interior.Color = RGB(255, 230, 230)  ' Lighter red
+    End With
+    
+    ' Auto-fit all columns for better visibility
+    Cells.EntireColumn.AutoFit
+    
+    ' Add a note about the color coding
+    Range("A1").Select
+    ActiveCell.FormulaR1C1 = "Strike Price (Important: See color coding below)"
+    Range("A1").Font.Bold = True
+    Range("A1").Font.Color = RGB(0, 0, 0)
+    
+    ' Add legend
+    Dim legendRow As Long
+    legendRow = lastRow + 3
+    
+    Cells(legendRow, 1).Value = "Color Legend:"
+    Cells(legendRow, 1).Font.Bold = True
+    
+    Cells(legendRow + 1, 1).Value = "Very Good Support (5+)"
+    Cells(legendRow + 1, 1).Interior.Color = RGB(200, 255, 200)
+    
+    Cells(legendRow + 2, 1).Value = "Good Support (3-5)"
+    Cells(legendRow + 2, 1).Interior.Color = RGB(230, 255, 230)
+    
+    Cells(legendRow + 3, 1).Value = "Very Good Resistance (5+)"
+    Cells(legendRow + 3, 1).Interior.Color = RGB(255, 200, 200)
+    
+    Cells(legendRow + 4, 1).Value = "Good Resistance (3-5)"
+    Cells(legendRow + 4, 1).Interior.Color = RGB(255, 230, 230)
+    
+    ' Format legend
+    Range(Cells(legendRow, 1), Cells(legendRow + 4, 1)).Borders.LineStyle = xlContinuous
+    Range(Cells(legendRow, 1), Cells(legendRow + 4, 1)).HorizontalAlignment = xlLeft
+    Range(Cells(legendRow, 1), Cells(legendRow + 4, 1)).VerticalAlignment = xlCenter
+    
+    ' Auto-fit the legend column
+    Columns(1).AutoFit
+    
+    ' Go back to the top
+    Range("A1").Select
+    
+    ' Hide unnecessary columns (keep strike price column visible)
     Columns("B:B").Hidden = True
     Columns("F:F").Hidden = True
     Columns("J:J").Hidden = True
 End Sub
 </pre>
+
+
                     <div class="row mt-4">
                         <div class="col-md-6">
                             <h5>How to Use the Macro:</h5>
