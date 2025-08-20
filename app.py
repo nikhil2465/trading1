@@ -298,11 +298,11 @@ def process_file_with_macro(input_path, output_path):
                                 cell.font = Font(bold=True)
                             elif cell.value > 3:  # Good Support
                                 cell.fill = PatternFill(start_color='C6EFCE', end_color='C6EFCE', fill_type='solid')
-                        # Red for Resistance values above threshold - ONLY CHANGING RESISTANCE COLUMN
+                        # Red for Resistance values above threshold
                         elif cell.column_letter == 'C':
                             # First, handle the >6 case which highlights the entire row
                             if cell.value > 6:  # Highlight for Chanakya Resistance > 6
-                                for row_cell in ws[cell.row]:
+                                for row_cell in worksheet[cell.row]:
                                     row_cell.fill = PatternFill(start_color='E4D8F5', end_color='E4D8F5', fill_type='solid')
                                     if row_cell.column_letter == 'C':  # Make the resistance value bold
                                         row_cell.font = Font(bold=True, size=11)
@@ -442,7 +442,7 @@ def process_excel_after_macro(input_path):
                             # Highlight the entire row in light purple
                             for row_cell in worksheet[cell.row]:
                                 row_cell.fill = PatternFill(start_color='E4D8F5', end_color='E4D8F5', fill_type='solid')
-                                if row_cell.column_letter == 'C':  # Make resistance value bold
+                                if row_cell.column_letter == 'C':  # Make the resistance value bold
                                     row_cell.font = Font(bold=True, size=11)
                         
                         # Now apply the cell-specific formatting (this will override the row formatting for this cell)
@@ -465,9 +465,36 @@ def process_excel_after_macro(input_path):
                         # Handle Good Resistance (3 < value ≤ 5)
                         elif cell.value > 3:
                             cell.fill = PatternFill(start_color='FFB6C1', end_color='FFB6C1', fill_type='solid')
-        
-        return output_path
-    return input_path  # Return original if processing failed
+                    
+                    # Highlight any cell in the worksheet with value > 6
+                    elif isinstance(cell.value, (int, float)) and cell.value > 6:
+                        cell.fill = PatternFill(start_color='FFD700', end_color='FFD700', fill_type='solid')  # Gold color
+                        cell.font = Font(bold=True)
+                    
+                    # Highlight text patterns in 3rd column (column C)
+                    elif idx == 3 and cell.value and isinstance(cell.value, str):
+                        if cell.value == 'Very Good Resistance':
+                            cell.fill = PatternFill(start_color='90EE90', end_color='90EE90', fill_type='solid')
+                            cell.font = Font(bold=True, color='000000')
+                        elif cell.value == 'Resistance':
+                            cell.fill = PatternFill(start_color='FFD580', end_color='FFD580', fill_type='solid')
+                            cell.font = Font(italic=True, color='000000')
+            
+            # After all cell-by-cell formatting, scan 1st column from bottom to top for values > 6
+            max_row = worksheet.max_row
+            for row in range(max_row, 1, -1):  # Start from last row and go up to row 2 (skipping header)
+                cell = worksheet.cell(row=row, column=1)  # Column 1 is the first column (A)
+                if isinstance(cell.value, (int, float)) and cell.value > 6:
+                    # Highlight the cell with a distinct color (using a blue shade)
+                    cell.fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')
+                    cell.font = Font(bold=True)
+                    
+                    # Also highlight the entire row in a lighter shade
+                    for row_cell in worksheet[row]:
+                        if row_cell.column_letter != 'A':  # Don't override the cell we just formatted
+                            row_cell.fill = PatternFill(start_color='E6F3F9', end_color='E6F3F9', fill_type='solid')
+    
+    return output_path
 
 @app.route('/tools_macro_upload', methods=['POST'])
 def tools_macro_upload():
