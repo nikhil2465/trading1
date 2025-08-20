@@ -363,12 +363,32 @@ def process_excel_after_macro(input_path):
     if len(keep_columns) >= 2 and strike_price_col is not None:
         result_df = pd.DataFrame()
         
-        # Add strike price as the first column
-        result_df['Strike Price'] = df[strike_price_col]
+        # First, add all columns to a dictionary for easier manipulation
+        columns_dict = {}
+        
+        # Add strike price
+        columns_dict['Strike Price'] = df[strike_price_col]
         
         # Add support and resistance columns
-        for old_col, new_col in keep_columns[:2]:  # Only take first two matches
-            result_df[new_col] = df[old_col]
+        for old_col, new_col in keep_columns:  # Get all matches, not just first two
+            columns_dict[new_col] = df[old_col]
+        
+        # Create result DataFrame with columns in desired order
+        # 1. First add Chanakya Resistance if it exists
+        # 2. Then add other columns in their original order, excluding Chanakya Resistance
+        ordered_columns = []
+        
+        # Add Chanakya Resistance first if it exists
+        if 'Chanakya Resistance' in columns_dict:
+            ordered_columns.append('Chanakya Resistance')
+        
+        # Add remaining columns in their original order, excluding Chanakya Resistance
+        for col in columns_dict:
+            if col != 'Chanakya Resistance':
+                ordered_columns.append(col)
+        
+        # Create the result DataFrame with the ordered columns
+        result_df = pd.DataFrame({col: columns_dict[col] for col in ordered_columns})
         
         # Track first occurrences
         first_resistance_found = False
@@ -415,29 +435,35 @@ def process_excel_after_macro(input_path):
                         elif cell.value > 3:  # Good Support
                             cell.fill = PatternFill(start_color='C6EFCE', end_color='C6EFCE', fill_type='solid')
                     
-                    # Format resistance column (C) and highlight entire row if > 6
+                    # Format resistance column (C)
                     elif idx == 3 and isinstance(cell.value, (int, float)):
-                        # First, handle the >6 case which highlights the entire row
-                        if cell.value > 6:  # Highlight entire row for values > 6
+                        # First check if we need to highlight for values > 6
+                        if cell.value > 6:
+                            # Highlight the entire row in light purple
                             for row_cell in worksheet[cell.row]:
                                 row_cell.fill = PatternFill(start_color='E4D8F5', end_color='E4D8F5', fill_type='solid')
-                                if row_cell.column_letter == 'C':  # Make the resistance value bold
+                                if row_cell.column_letter == 'C':  # Make resistance value bold
                                     row_cell.font = Font(bold=True, size=11)
-                        # Then handle the first occurrence of Very Good Resistance (5 < value ≤ 6)
-                        elif cell.value > 5 and not first_resistance_found:  # First Very Good Resistance
+                        
+                        # Now apply the cell-specific formatting (this will override the row formatting for this cell)
+                        if cell.value > 6:
+                            cell.fill = PatternFill(start_color='9370DB', end_color='9370DB', fill_type='solid')  # Medium purple for the cell itself
+                            cell.font = Font(bold=True, color='FFFFFF', size=11)  # White bold text for better contrast
+                        # Handle first occurrence of Very Good Resistance (5 < value ≤ 6)
+                        elif cell.value > 5 and not first_resistance_found:
                             first_resistance_found = True
                             # Create a thick border for the first occurrence
                             thin_border = Side(border_style='thick', color='000000')
                             cell.border = Border(top=thin_border, left=thin_border, 
                                               right=thin_border, bottom=thin_border)
-                            cell.fill = PatternFill(start_color='CC0000', end_color='CC0000', fill_type='solid')  # Bright red for first occurrence
-                            cell.font = Font(bold=True, color='FFFFFF', size=12)  # White text, larger font
-                        # Other Very Good Resistance values (5 < value ≤ 6)
-                        elif cell.value > 5:  
+                            cell.fill = PatternFill(start_color='CC0000', end_color='CC0000', fill_type='solid')
+                            cell.font = Font(bold=True, color='FFFFFF', size=11)
+                        # Handle other Very Good Resistance values (5 < value ≤ 6)
+                        elif cell.value > 5:
                             cell.fill = PatternFill(start_color='FF6B6B', end_color='FF6B6B', fill_type='solid')
                             cell.font = Font(bold=True, size=11)
-                        # Good Resistance (3 < value ≤ 5)
-                        elif cell.value > 3:  
+                        # Handle Good Resistance (3 < value ≤ 5)
+                        elif cell.value > 3:
                             cell.fill = PatternFill(start_color='FFB6C1', end_color='FFB6C1', fill_type='solid')
         
         return output_path
